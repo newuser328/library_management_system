@@ -1,0 +1,158 @@
+/*
+  全局 UI 基础样式（与 Element Plus 搭配）
+  目标：每个板块不再只有白色背景；整体更“彩”但不刺眼；减少大面积空白
+*/
+
+:root {
+  --bg0: #f7f8ff;
+  --bg1: #ffffff;
+  --text0: #0f172a;
+  --text1: #334155;
+  --muted: #64748b;
+  --border: rgba(226, 232, 240, 0.9);
+
+  /* 品牌色（更丰富的渐变调色盘） */
+  --brand: #4f46e5;   /* indigo */
+  --brand2: #06b6d4;  /* cyan */
+  --brand3: #22c55e;  /* green */
+  --brand4: #f97316;  /* orange */
+  --brand5: #ec4899;  /* pink */
+
+  /* 板块背景渐变（更丰富） */
+  --panel-a: linear-gradient(135deg, rgba(79,70,229,0.10), rgba(6,182,212,0.08));
+  --panel-b: linear-gradient(135deg, rgba(34,197,94,0.10), rgba(79,70,229,0.08));
+  --panel-c: linear-gradient(135deg, rgba(249,115,22,0.10), rgba(236,72,153,0.08));
+  --panel-d: linear-gradient(135deg, rgba(6,182,212,0.10), rgba(249,115,22,0.08));
+
+  --warn: #f59e0b;
+  --danger: #ef4444;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  color: var(--text0);
+  background: var(--bg0);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(900px circle at 8% 10%, rgba(79,70,229,0.20) 0%, rgba(247,248,255,1) 46%),
+    radial-gradient(900px circle at 92% 12%, rgba(6,182,212,0.16) 0%, rgba(247,248,255,1) 52%),
+    radial-gradient(900px circle at 14% 86%, rgba(236,72,153,0.12) 0%, rgba(247,248,255,1) 55%),
+    radial-gradient(900px circle at 86% 88%, rgba(249,115,22,0.12) 0%, rgba(247,248,255,1) 55%);
+  color: var(--text0);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Element Plus 基础增强 */
+.el-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.84);
+  backdrop-filter: blur(10px);
+}
+
+/* 常用容器：让页面块有轻微渐变背景，而不是纯白 */
+.panel {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(10px);
+}
+
+.panel-a { background: var(--panel-a); }
+.panel-b { background: var(--panel-b); }
+.panel-c { background: var(--panel-c); }
+.panel-d { background: var(--panel-d); }
+
+/* 页面容器统一间距，减少“文字下空白” */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Element Plus 表格 */
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+:root .el-table__row:hover > td {
+  background: rgba(79,70,229,0.05) !important;
+}
+
+/* 轻微按钮动效 */
+.el-button {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.el-button:active {
+  transform: translateY(1px);
+}
+
+/* 滚动条美化（WebKit） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 999px;
+  border: 3px solid rgba(0,0,0,0);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.28);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* NProgress */
+#nprogress .bar {
+  background: linear-gradient(90deg, var(--brand), var(--brand2), var(--brand5)) !important;
+  height: 3px !important;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--brand), 0 0 5px var(--brand2) !important;
+}
+
+/* 让页面内容不再被 Vite 默认居中规则影响 */
+body {
+  display: block;
+  place-items: initial;
+  min-width: 320px;
+}
+
+/* 工具类 */
+.page-title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--brand), var(--brand2), var(--brand5));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
