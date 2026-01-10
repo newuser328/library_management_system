@@ -2,14 +2,15 @@
 
 本项目是一个前后端分离的图书馆管理系统：
 
-- 后端：Spring Boot 4 + Spring Security + JWT + Spring Data JPA + MySQL
+- 后端：Spring Boot 4 + Spring Security + JWT + Spring Data JPA + MySQL + Redis
 - 前端：Vue 3 + Vite + Element Plus + Pinia + Vue Router
 
-包含：
+功能概览：
+
 - 管理员端：图书/分类/用户/借阅管理、管理员注册口令生成
-- 读者端：图书浏览、批量借阅申请、我的借阅、个人中心
-- 认证：账号密码登录 + 手机号验证码登录（容联云通信/Mock）
-- 安全增强：手机号验证码自动注册用户必须先设置密码
+- 读者端：图书浏览、批量借阅申请（借阅对话框展示当前选中书籍）、我的借阅、个人中心
+- 认证：账号密码登录 + 手机号验证码登录（容联云通信 / Mock）
+- 安全增强：手机号验证码自动注册用户必须先设置密码（设置后才可进入系统）
 
 ---
 
@@ -20,7 +21,9 @@ library_management_system/               # 后端（Spring Boot）
 ├─ src/main/java/com/example/library_management_system
 ├─ src/main/resources
 │  ├─ application.properties
-│  └─ static/int.sql                     # 数据库初始化脚本
+│  └─ static/
+│     ├─ int.sql                         # 初始化脚本（含示例数据）
+│     └─ init_schema.sql                 # 初始化脚本（仅建表，不插入数据）
 ├─ pom.xml
 └─ README.md
 
@@ -42,25 +45,31 @@ library_ui/                              # 前端（Vue3 + Vite + Element Plus�
 
 ## 3. 数据库初始化
 
-初始化脚本：
+项目提供脚本：
 
-- `src/main/resources/static/int.sql`
+- `src/main/resources/static/init_schema.sql`：仅建库建表（不插入任何数据）
 
-执行示例：
+执行示例（含示例数据）：
 
 ```bash
 mysql -uroot -p < src/main/resources/static/int.sql
+```
+
+执行示例（仅建表，不插入数据）：
+
+```bash
+mysql -uroot -p < src/main/resources/static/init_schema.sql
 ```
 
 ---
 
 ## 4. 配置说明
 
+配置文件：`src/main/resources/application.properties`
+
 ### 4.1 MySQL 配置
 
-文件：`src/main/resources/application.properties`
-
-需要按本机修改：
+按本机修改：
 
 - `spring.datasource.url`
 - `spring.datasource.username`
@@ -100,12 +109,17 @@ app.sms.yuntongxun.server-port=8883
 app.sms.yuntongxun.account-sid=你的AccountSID
 app.sms.yuntongxun.account-token=你的AccountToken
 app.sms.yuntongxun.app-id=你的AppID
-app.sms.yuntongxun.template-id=你的模板ID   # 注意：这里必须是模板ID，不是模板内容
+app.sms.yuntongxun.template-id=你的模板ID
 
 app.sms.code-length=6
 app.sms.code-expire-seconds=300
 app.sms.send-limit-seconds=60
 ```
+
+注意：
+
+- **`template-id` 必须填写“模板ID”，不是模板内容**
+- 请不要把短信平台的 `Token`/`密钥` 等敏感信息提交到仓库，建议使用环境变量或本地私密配置
 
 ---
 
@@ -152,11 +166,7 @@ npm run dev
 - 用户名：`admin`
 - 密码：`admin123`
 
-示例读者账号（来自 `int.sql`，密码均为 `123456`）：
 
-- `reader1 / 123456`
-- `reader2 / 123456`
-- `reader3 / 123456`
 
 ---
 
@@ -169,7 +179,7 @@ npm run dev
 
 ---
 
-## 8. 手机号验证码登录（新增）
+## 8. 手机号验证码登录
 
 ### 8.1 API
 
@@ -181,13 +191,13 @@ npm run dev
 - 验证码：`sms:code:{phone}`（默认 5 分钟过期）
 - 发送频率限制：`sms:limit:{phone}`（默认 60 秒）
 
-### 8.3 安全规则：强制设置密码
+### 8.3 强制设置密码
 
-手机号验证码登录若触发自动注册（或账号密码为空标识），登录后会返回：
+手机号验证码登录若触发自动注册（或账号被标识为需要设置密码），登录后会返回：
 
 - `needSetPassword=true`
 
-前端会强制跳转到 `/set-password` 页面；设置成功后才允许进入读者端。
+前端会强制跳转到 `/set-password` 页面；设置成功后才允许进入系统。
 
 设置密码接口：
 
