@@ -5,7 +5,7 @@
       <div class="toolbar">
         <div class="left">
           <div class="page-title">图书浏览</div>
-          <div class="muted">搜索你想借阅的书籍，点击“借阅”提交申请</div>
+          <div class="muted">登录后可直接点击分类名称筛选图书</div>
         </div>
 
         <div class="right">
@@ -21,10 +21,31 @@
             </template>
           </el-input>
 
-          <el-button type="primary" :icon="Reading" :disabled="!selectedBook" @click="handleBorrow">
+          <el-button type="primary" :icon="Reading" :disabled="selectedBooks.length===0" @click="handleBorrow">
             借阅
           </el-button>
         </div>
+      </div>
+
+      <!-- 分类快捷入口：点击分类名称筛选 -->
+      <div class="category-tags">
+        <el-tag
+          class="cat-tag"
+          round
+          :type="!categoryId ? 'success' : 'info'"
+          effect="light"
+          @click="selectCategory(null)"
+        >全部</el-tag>
+
+        <el-tag
+          v-for="c in categories"
+          :key="c.id"
+          class="cat-tag"
+          round
+          :type="categoryId === c.id ? 'success' : 'info'"
+          effect="light"
+          @click="selectCategory(c.id)"
+        >{{ c.name }}</el-tag>
       </div>
     </el-card>
 
@@ -38,9 +59,25 @@
         row-class-name="table-row"
       >
         <el-table-column type="selection" width="55" />
+        <el-table-column label="" width="72">
+          <template #default="{ row }">
+            <el-image
+              class="cover"
+              :src="getCoverUrl(row)"
+              fit="cover"
+              :preview-src-list="[getCoverUrl(row)]"
+              preview-teleported
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="title" label="书名" min-width="240" show-overflow-tooltip />
         <el-table-column prop="author" label="作者" width="140" />
         <el-table-column prop="isbn" label="ISBN" width="180" />
+        <el-table-column label="分类" min-width="160">
+          <template #default="{ row }">
+            <span>{{ formatCategories(row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="publisher" label="出版社" width="160" show-overflow-tooltip />
         <el-table-column label="可借数量" width="140">
           <template #default="{ row }">
@@ -84,10 +121,41 @@
     </el-dialog>
 
     <!-- 借阅申请对话框 -->
-    <el-dialog v-model="borrowDialog.visible" title="借阅申请" width="520px" top="10vh">
+    <el-dialog v-model="borrowDialog.visible" title="借阅申请" width="600px" top="8vh">
       <el-alert type="info" show-icon :closable="false" class="tip">
         提交申请后需管理员审核。通过后将自动生成应还日期。
       </el-alert>
+
+      <!-- 当前借阅书籍列表 -->
+      <div class="borrow-books-section">
+        <div class="section-title">
+          <el-icon><Reading /></el-icon>
+          <span>待借阅书籍（{{ selectedBooks.length }} 本）</span>
+        </div>
+        <div class="books-list">
+          <div v-for="book in selectedBooks" :key="book.id" class="book-item">
+            <el-image
+              class="book-cover"
+              :src="getCoverUrl(book)"
+              fit="cover"
+              :preview-src-list="[getCoverUrl(book)]"
+              preview-teleported
+            />
+            <div class="book-info">
+              <div class="book-title">{{ book.title }}</div>
+              <div class="book-meta">
+                <span>作者：{{ book.author || '-' }}</span>
+                <span>ISBN：{{ book.isbn }}</span>
+              </div>
+              <div class="book-stock">
+                <el-tag :type="book.availableCount > 0 ? 'success' : 'danger'" size="small" effect="light">
+                  可借 {{ book.availableCount }} / {{ book.totalCount }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <el-form :model="borrowForm" label-position="top">
         <el-form-item label="备注（可选）">
@@ -98,7 +166,9 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="borrowDialog.visible = false">取消</el-button>
-          <el-button type="primary" :loading="borrowDialog.loading" @click="submitBorrow">确认借阅</el-button>
+          <el-button type="primary" :loading="borrowDialog.loading" @click="submitBorrow">
+            确认借阅（{{ selectedBooks.length }} 本）
+          </el-button>
         </span>
       </template>
     </el-dialog>
@@ -110,13 +180,16 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search, Reading, View } from '@element-plus/icons-vue';
 import { listBooks } from '@/api/books';
+import { listCategories } from '@/api/categories';
 import { createBorrow } from '@/api/borrows';
 import BookDetail from '@/components/books/BookDetail.vue';
 
 const keyword = ref('');
+const categoryId = ref(null);
+const categories = ref([]);
 const loading = ref(false);
 const bookList = ref([]);
-const selectedBook = ref(null);
+const selectedBooks = ref([]);
 
 const pagination = reactive({
   current: 1,
@@ -143,6 +216,7 @@ const loadBooks = async () => {
   try {
     const params = { page: pagination.current - 1, size: pagination.size };
     if (keyword.value) params.keyword = keyword.value;
+    if (categoryId.value) params.categoryId = categoryId.value;
 
     const res = await listBooks(params);
     bookList.value = res.content;
@@ -150,6 +224,36 @@ const loadBooks = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const loadCategories = async () => {
+  categories.value = await listCategories();
+};
+
+const getCoverUrl = (book) => {
+  if (book && book.coverUrl) {
+    if (book.coverUrl.startsWith('/api/')) {
+      return 'http://localhost:8080' + book.coverUrl;
+    }
+    return book.coverUrl;
+  }
+  // 前端占位图（放在 library_ui/public/empty.png）
+  return '/empty.png';
+};
+
+const formatCategories = (row) => {
+  const arr = row?.categories;
+  if (Array.isArray(arr) && arr.length > 0) {
+    return arr.map((c) => c.name).join(' / ');
+  }
+  if (row?.category) return row.category;
+  return '未分类';
+};
+
+const selectCategory = (id) => {
+  categoryId.value = id;
+  pagination.current = 1;
+  loadBooks();
 };
 
 const handleSearch = () => {
@@ -162,7 +266,14 @@ const handlePageChange = () => {
 };
 
 const handleSelectionChange = (selection) => {
-  selectedBook.value = selection.length > 0 ? selection[0] : null;
+  // 选择超过 3 本时，回退为前 3 本并提示
+  const arr = Array.isArray(selection) ? selection : [];
+  if (arr.length > 3) {
+    selectedBooks.value = arr.slice(0, 3);
+    ElMessage.warning('每个人一次最多可借三本书');
+    return;
+  }
+  selectedBooks.value = arr;
 };
 
 const showBookDetail = (book) => {
@@ -171,8 +282,20 @@ const showBookDetail = (book) => {
 };
 
 const handleBorrow = () => {
-  if (!selectedBook.value) return;
-  borrowSingle(selectedBook.value);
+  if (!selectedBooks.value || selectedBooks.value.length === 0) return;
+
+  // 过滤掉无库存的书
+  const available = selectedBooks.value.filter((b) => b.availableCount > 0);
+  const noStock = selectedBooks.value.filter((b) => b.availableCount <= 0);
+  if (noStock.length > 0) {
+    ElMessage.warning(`有 ${noStock.length} 本图书暂无库存，已自动忽略`);
+  }
+  if (available.length === 0) {
+    return;
+  }
+
+  borrowDialog.visible = true;
+  borrowForm.remark = '';
 };
 
 const borrowSingle = (book) => {
@@ -180,31 +303,60 @@ const borrowSingle = (book) => {
     ElMessage.warning('该图书暂无库存');
     return;
   }
+
+  // 如果当前已选满 3 本且该书不在已选中，则提示
+  if (selectedBooks.value.length >= 3 && !selectedBooks.value.some((b) => b.id === book.id)) {
+    ElMessage.warning('每个人一次最多可借三本书');
+    return;
+  }
+
+  selectedBooks.value = [book];
   borrowDialog.visible = true;
   borrowForm.remark = '';
-  // 记录当前要借的书
-  selectedBook.value = book;
 };
 
 const submitBorrow = async () => {
-  if (!selectedBook.value) return;
+  if (!selectedBooks.value || selectedBooks.value.length === 0) return;
+
+  // 前端兜底：一次最多提交 3 本
+  const toSubmit = selectedBooks.value.slice(0, 3).filter((b) => b.availableCount > 0);
+  if (toSubmit.length === 0) return;
 
   borrowDialog.loading = true;
   try {
-    await createBorrow({
-      bookId: selectedBook.value.id,
-      remark: borrowForm.remark,
-    });
+    const results = await Promise.all(
+      toSubmit.map((book) =>
+        createBorrow({ bookId: book.id, remark: borrowForm.remark }).then(
+          () => ({ ok: true, book }),
+          (error) => ({ ok: false, book, error })
+        )
+      )
+    );
 
-    ElMessage.success('借阅申请已提交，请等待审核');
+    const successCount = results.filter((r) => r.ok).length;
+    const failCount = results.length - successCount;
+
+    if (successCount > 0) {
+      ElMessage.success(`成功提交 ${successCount} 本书的借阅申请`);
+      if (failCount > 0) {
+        // 后端会校验“最多 3 本”，这里提示即可
+        ElMessage.warning(`有 ${failCount} 本提交失败（可能已达上限/重复借阅/无库存）`);
+      }
     borrowDialog.visible = false;
-    loadBooks();
+      await loadBooks();
+      selectedBooks.value = [];
+    } else {
+      ElMessage.error('借阅失败，请稍后重试');
+    }
   } finally {
     borrowDialog.loading = false;
   }
 };
 
-onMounted(loadBooks);
+onMounted(async () => {
+  await loadCategories();
+  await loadBooks();
+});
 </script>
 
 <style scoped>
@@ -212,7 +364,116 @@ onMounted(loadBooks);
 .toolbar { display:flex; justify-content:space-between; gap: 16px; align-items:center; flex-wrap: wrap; }
 .left { display:flex; flex-direction:column; gap: 4px; }
 .right { display:flex; gap: 12px; align-items:center; flex-wrap: wrap; }
+
+.category-tags {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cat-tag {
+  cursor: pointer;
+  user-select: none;
+}
+
 .pagination { margin-top: 16px; display:flex; justify-content:flex-end; }
-.tip { margin-bottom: 12px; }
+.tip { margin-bottom: 16px; }
 :deep(.table-row) { cursor: pointer; }
+.cover {
+  width: 40px;
+  height: 52px;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+}
+
+/* 借阅对话框样式 */
+.borrow-books-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.books-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.book-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  transition: all 0.2s;
+}
+
+.book-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.book-cover {
+  width: 60px;
+  height: 80px;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.book-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.book-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.book-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+
+.book-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-stock {
+  margin-top: auto;
+}
 </style>

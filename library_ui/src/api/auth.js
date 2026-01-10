@@ -31,3 +31,26 @@ export const getMe = () => {
     });
 };
 
+export const sendSmsCode = (phone) => {
+    return request({
+        url: '/auth/sms/send',
+        method: 'post',
+        data: { phone },
+    });
+};
+
+export const smsLogin = (phone, code) => {
+    return request({
+        url: '/auth/sms/login',
+        method: 'post',
+        data: { phone, code },
+    });
+};
+
+export const setPassword = (password) => {
+    return request({
+        url: '/me/set-password',
+        method: 'post',
+        data: { password },
+    });
+};

@@ -8,6 +8,13 @@ export const createBorrow = (data) => {
   });
 };
 
+export const cancelBorrow = (id) => {
+  return request({
+    url: `/borrows/${id}/cancel`,
+    method: 'post',
+  });
+};
+
 export const listMyBorrows = (params) => {
   return request({
     url: '/borrows/my',
@@ -45,4 +52,3 @@ export const returnBorrow = (id) => {
     method: 'post',
   });
 };
-

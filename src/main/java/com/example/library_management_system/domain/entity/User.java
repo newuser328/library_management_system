@@ -29,7 +29,7 @@ public class User {
     @Column(nullable = false, length = 64)
     private String name;
 
-    @Column(length = 32)
+    @Column(length = 32, unique = true)
     private String phone;
 
     @Column(length = 128)

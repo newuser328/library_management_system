@@ -22,6 +22,9 @@ public interface BorrowRepository extends JpaRepository<Borrow, Long> {
     Page<Borrow> findByUser(User user, Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "book"})
+    Page<Borrow> findByUserAndStatus(User user, BorrowStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "book"})
     Page<Borrow> findByBook(Book book, Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "book"})
@@ -31,6 +34,8 @@ public interface BorrowRepository extends JpaRepository<Borrow, Long> {
     List<Borrow> findByStatusAndDueDateBefore(BorrowStatus status, LocalDate dueDate);
 
     boolean existsByUserAndBookAndStatusIn(User user, Book book, List<BorrowStatus> statuses);
+
+    long countByUserAndStatusIn(User user, List<BorrowStatus> statuses);
 
     @EntityGraph(attributePaths = {"user", "book"})
     Page<Borrow> findByBook_TitlePinyinStartingWithIgnoreCase(String titleInitial, Pageable pageable);

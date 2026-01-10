@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -25,14 +27,27 @@ public class Book {
     @Column(nullable = false, length = 128)
     private String title;
 
-    @Column(length = 16)
-    private String titlePinyin; // 新增：书名首字母（自动生成）
+    @Column(length = 32)
+    private String titlePinyin; // 书名首字母（自动生成）
 
     @Column(length = 64)
     private String author;
 
+    /**
+     * 旧分类字段（字符串）- 为兼容老数据保留。
+     * 新逻辑请使用 categories（多对多）。
+     */
     @Column(length = 64)
     private String category;
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(
+            name = "book_categories",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
 
     @Column(length = 64)
     private String publisher;

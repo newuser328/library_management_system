@@ -16,7 +16,11 @@ public class BookCreateUpdateRequest {
 
     private String author;
 
+    // 兼容旧接口：若仍传 category 字符串则尝试按名称自动匹配/创建
     private String category;
+
+    // 新接口：多分类 id 列表
+    private java.util.List<Long> categoryIds;
 
     private String publisher;
 

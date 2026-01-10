@@ -4,7 +4,7 @@
       <el-descriptions-item label="书名" :span="2">{{ book.title }}</el-descriptions-item>
       <el-descriptions-item label="作者">{{ book.author }}</el-descriptions-item>
       <el-descriptions-item label="ISBN">{{ book.isbn }}</el-descriptions-item>
-      <el-descriptions-item label="分类">{{ book.category }}</el-descriptions-item>
+      <el-descriptions-item label="分类">{{ formatCategories(book) }}</el-descriptions-item>
       <el-descriptions-item label="出版社">{{ book.publisher }}</el-descriptions-item>
       <el-descriptions-item label="库存" :span="2">
         <el-tag :type="book.availableCount > 0 ? 'success' : 'danger'">
@@ -19,8 +19,17 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   book: { type: Object, default: null },
 });
+
+const formatCategories = (row) => {
+  const arr = row?.categories;
+  if (Array.isArray(arr) && arr.length > 0) {
+    return arr.map((c) => c.name).join(' / ');
+  }
+  if (row?.category) return row.category;
+  return '未分类';
+};
 </script>
 

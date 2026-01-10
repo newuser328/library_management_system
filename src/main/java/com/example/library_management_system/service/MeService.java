@@ -4,6 +4,7 @@ import com.example.library_management_system.domain.entity.User;
 import com.example.library_management_system.repository.UserRepository;
 import com.example.library_management_system.web.dto.ChangePasswordRequest;
 import com.example.library_management_system.web.dto.MeUpdateRequest;
+import com.example.library_management_system.web.dto.SetPasswordRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,6 +45,24 @@ public class MeService {
         }
 
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    /**
+     * 首次设置密码（用于手机号验证码注册的用户）
+     */
+    @Transactional
+    public void setPassword(String username, SetPasswordRequest req) {
+        User user = getByUsername(username);
+        
+        // 仅允许“手机号验证码自动注册”的用户设置密码：这类用户 password 为空/空白
+        String currentPassword = user.getPassword();
+        if (currentPassword != null && !currentPassword.isBlank()) {
+            throw new IllegalStateException("密码已设置，请使用修改密码功能");
+        }
+
+        // 设置新密码
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
         userRepository.save(user);
     }
 }

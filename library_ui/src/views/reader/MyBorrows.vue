@@ -14,6 +14,7 @@
             <el-option label="已借出" value="APPROVED" />
             <el-option label="已拒绝" value="REJECTED" />
             <el-option label="已归还" value="RETURNED" />
+            <el-option label="已取消" value="CANCELLED" />
           </el-select>
           <el-button :icon="Refresh" @click="loadBorrows">刷新</el-button>
         </div>
@@ -39,6 +40,22 @@
         <el-table-column prop="returnTime" label="归还时间" width="180" />
         <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
 
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
+            <el-popconfirm
+              v-if="row.status === 'PENDING'"
+              title="确认取消该借阅申请？"
+              width="220"
+              @confirm="onCancel(row)"
+            >
+              <template #reference>
+                <el-button link type="danger">取消申请</el-button>
+              </template>
+            </el-popconfirm>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+
         <template #empty>
           <el-empty description="你还没有借阅记录">
             <el-button type="primary" @click="$router.push('/reader/books')">去借书</el-button>
@@ -62,7 +79,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { Refresh } from '@element-plus/icons-vue';
-import { listMyBorrows } from '@/api/borrows';
+import { ElMessage } from 'element-plus';
+import { listMyBorrows, cancelBorrow } from '@/api/borrows';
 
 const loading = ref(false);
 const borrowList = ref([]);
@@ -80,6 +98,7 @@ const statusText = (s) => {
     case 'APPROVED': return '已借出';
     case 'REJECTED': return '已拒绝';
     case 'RETURNED': return '已归还';
+    case 'CANCELLED': return '已取消';
     default: return s;
   }
 };
@@ -90,6 +109,7 @@ const statusTagType = (s) => {
     case 'APPROVED': return 'success';
     case 'REJECTED': return 'danger';
     case 'RETURNED': return 'info';
+    case 'CANCELLED': return 'info';
     default: return 'info';
   }
 };
@@ -119,6 +139,12 @@ const loadBorrows = async () => {
 
 const handleSearch = () => {
   pagination.current = 1;
+  loadBorrows();
+};
+
+const onCancel = async (row) => {
+  await cancelBorrow(row.id);
+  ElMessage.success('已取消申请');
   loadBorrows();
 };
 

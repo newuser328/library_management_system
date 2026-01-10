@@ -6,7 +6,6 @@ import com.example.library_management_system.domain.entity.User;
 import com.example.library_management_system.domain.enums.BorrowStatus;
 import com.example.library_management_system.repository.BookRepository;
 import com.example.library_management_system.repository.BorrowRepository;
-import com.example.library_management_system.repository.UserRepository;
 import com.example.library_management_system.security.SecurityUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,15 +23,21 @@ import java.util.List;
 public class BorrowService {
 
     private static final int DEFAULT_BORROW_DAYS = 30;
+    private static final int MAX_ACTIVE_BORROWS_PER_USER = 3;
 
     private final BorrowRepository borrowRepository;
-    private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final SecurityUtils securityUtils;
 
     @Transactional
     public Borrow requestBorrow(Long bookId, String remark) {
         User user = securityUtils.currentUser(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
+
+        // 每人最多 3 本未归还（PENDING + APPROVED 都算在内）
+        long activeCount = borrowRepository.countByUserAndStatusIn(user, List.of(BorrowStatus.PENDING, BorrowStatus.APPROVED));
+        if (activeCount >= MAX_ACTIVE_BORROWS_PER_USER) {
+            throw new IllegalStateException("每个人一次最多可借三本书");
+        }
 
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new EntityNotFoundException("Book not found: " + bookId));
@@ -58,6 +63,25 @@ public class BorrowService {
                 .remark(remark)
                 .build();
 
+        return borrowRepository.save(borrow);
+    }
+
+    @Transactional
+    public Borrow cancelMyBorrow(Long borrowId) {
+        User user = securityUtils.currentUser(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
+        Borrow borrow = getByIdWithRelations(borrowId);
+
+        if (!borrow.getUser().getId().equals(user.getId())) {
+            throw new IllegalStateException("无权限取消该借阅申请");
+        }
+        if (borrow.getStatus() != BorrowStatus.PENDING) {
+            throw new IllegalStateException("仅待审核的申请可取消");
+        }
+
+        borrow.setStatus(BorrowStatus.CANCELLED);
+        // 管理端展示：标记为用户取消
+        borrow.setRemark("用户取消借阅");
+        // 取消不设置 rejectTime/returnTime，保留 requestTime 作为申请时间
         return borrowRepository.save(borrow);
     }
 
@@ -138,8 +162,11 @@ public class BorrowService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Borrow> listMyBorrows(Pageable pageable) {
+    public Page<Borrow> listMyBorrows(BorrowStatus status, Pageable pageable) {
         User user = securityUtils.currentUser(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
+        if (status != null) {
+            return borrowRepository.findByUserAndStatus(user, status, pageable);
+        }
         return borrowRepository.findByUser(user, pageable);
     }
 }

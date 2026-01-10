@@ -32,6 +32,14 @@ public class BorrowController {
     }
 
     /**
+     * 读者取消借阅申请（仅 PENDING 可取消）
+     */
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<BorrowDto> cancel(@PathVariable Long id) {
+        return ApiResponse.ok(toDto(borrowService.cancelMyBorrow(id)));
+    }
+
+    /**
      * 管理员审核通过
      */
     @PostMapping("/{id}/approve")
@@ -72,11 +80,14 @@ public class BorrowController {
     }
 
     /**
-     * 读者查看我的借阅
+     * 读者查看我的借阅（支持按状态筛选）
      */
     @GetMapping("/my")
-    public ApiResponse<Page<BorrowDto>> my(Pageable pageable) {
-        return ApiResponse.ok(borrowService.listMyBorrows(pageable).map(this::toDto));
+    public ApiResponse<Page<BorrowDto>> my(
+            @RequestParam(required = false) BorrowStatus status,
+            Pageable pageable
+    ) {
+        return ApiResponse.ok(borrowService.listMyBorrows(status, pageable).map(this::toDto));
     }
 
     private BorrowDto toDto(Borrow b) {

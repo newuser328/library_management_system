@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
+const NEED_SET_PASSWORD_KEY = 'needSetPassword';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -15,6 +16,7 @@ export const useAuthStore = defineStore('auth', {
         return null;
       }
     })(),
+    needSetPassword: sessionStorage.getItem(NEED_SET_PASSWORD_KEY) === 'true',
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
@@ -37,11 +39,21 @@ export const useAuthStore = defineStore('auth', {
         sessionStorage.removeItem(USER_KEY);
       }
     },
+    setNeedSetPassword(needSetPassword) {
+      this.needSetPassword = needSetPassword;
+      if (needSetPassword) {
+        sessionStorage.setItem(NEED_SET_PASSWORD_KEY, 'true');
+      } else {
+        sessionStorage.removeItem(NEED_SET_PASSWORD_KEY);
+      }
+    },
     logout() {
       this.token = '';
       this.user = null;
+      this.needSetPassword = false;
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(NEED_SET_PASSWORD_KEY);
     },
   },
 });

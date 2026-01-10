@@ -9,6 +9,7 @@
             <el-option label="已借出" value="APPROVED" />
             <el-option label="已拒绝" value="REJECTED" />
             <el-option label="已归还" value="RETURNED" />
+            <el-option label="已取消" value="CANCELLED" />
           </el-select>
 
           <el-input
@@ -136,6 +137,7 @@ const statusText = (s) => {
     case 'APPROVED': return '已借出';
     case 'REJECTED': return '已拒绝';
     case 'RETURNED': return '已归还';
+    case 'CANCELLED': return '已取消';
     default: return s;
   }
 };
@@ -146,6 +148,7 @@ const statusTagType = (s) => {
     case 'APPROVED': return 'success';
     case 'REJECTED': return 'danger';
     case 'RETURNED': return 'info';
+    case 'CANCELLED': return 'info';
     default: return 'info';
   }
 };

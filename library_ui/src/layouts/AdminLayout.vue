@@ -11,6 +11,7 @@
 
       <el-menu :default-active="active" router class="menu">
         <el-menu-item index="/admin/books">图书管理</el-menu-item>
+        <el-menu-item index="/admin/categories">分类管理</el-menu-item>
         <el-menu-item index="/admin/users">用户管理</el-menu-item>
         <el-menu-item index="/admin/borrows">借阅管理</el-menu-item>
         <el-menu-item index="/admin/admin-token">管理员口令</el-menu-item>
@@ -58,6 +59,7 @@ const active = computed(() => route.path);
 
 const title = computed(() => {
   if (route.path.includes('/admin/books')) return '图书管理';
+  if (route.path.includes('/admin/categories')) return '分类管理';
   if (route.path.includes('/admin/users')) return '用户管理';
   if (route.path.includes('/admin/borrows')) return '借阅管理';
   if (route.path.includes('/admin/admin-token')) return '管理员口令';

@@ -4,6 +4,8 @@ import com.example.library_management_system.domain.entity.Book;
 import com.example.library_management_system.service.BookService;
 import com.example.library_management_system.web.dto.ApiResponse;
 import com.example.library_management_system.web.dto.BookCreateUpdateRequest;
+import com.example.library_management_system.web.dto.BookResponse;
+import com.example.library_management_system.web.dto.CategoryResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,7 +20,7 @@ public class BookController {
     private final BookService bookService;
 
     @PostMapping
-    public ApiResponse<Book> create(@Valid @RequestBody BookCreateUpdateRequest req) {
+    public ApiResponse<BookResponse> create(@Valid @RequestBody BookCreateUpdateRequest req) {
         Book book = Book.builder()
                 .isbn(req.getIsbn())
                 .title(req.getTitle())
@@ -30,11 +32,12 @@ public class BookController {
                 .totalCount(req.getTotalCount())
                 .availableCount(req.getTotalCount())
                 .build();
-        return ApiResponse.ok(bookService.create(book));
+        Book createdBook = bookService.create(book, req.getCategoryIds(), req.getCategory());
+        return ApiResponse.ok(toBookResponse(createdBook));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Book> update(@PathVariable Long id, @Valid @RequestBody BookCreateUpdateRequest req) {
+    public ApiResponse<BookResponse> update(@PathVariable Long id, @Valid @RequestBody BookCreateUpdateRequest req) {
         Book book = Book.builder()
                 .isbn(req.getIsbn())
                 .title(req.getTitle())
@@ -45,7 +48,8 @@ public class BookController {
                 .coverUrl(req.getCoverUrl())
                 .totalCount(req.getTotalCount())
                 .build();
-        return ApiResponse.ok(bookService.update(id, book));
+        Book updated = bookService.update(id, book, req.getCategoryIds(), req.getCategory());
+        return ApiResponse.ok(toBookResponse(updated));
     }
 
     @DeleteMapping("/{id}")
@@ -55,17 +59,42 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Book> get(@PathVariable Long id) {
-        return ApiResponse.ok(bookService.getById(id));
+    public ApiResponse<BookResponse> get(@PathVariable Long id) {
+        return ApiResponse.ok(toBookResponse(bookService.getById(id)));
     }
 
     @GetMapping
-    public ApiResponse<Page<Book>> search(
+    public ApiResponse<Page<BookResponse>> search(
             @RequestParam(required = false) String keyword,
+            // 兼容旧参数：category（字符串）
             @RequestParam(required = false) String category,
+            // 新参数：categoryId（分类 id）
+            @RequestParam(required = false) Long categoryId,
             Pageable pageable
     ) {
-        return ApiResponse.ok(bookService.search(keyword, category, pageable));
+        Page<BookResponse> page = bookService.search(keyword, category, categoryId, pageable)
+                .map(this::toBookResponse);
+        return ApiResponse.ok(page);
+    }
+
+    private BookResponse toBookResponse(Book book) {
+        return BookResponse.builder()
+                .id(book.getId())
+                .isbn(book.getIsbn())
+                .title(book.getTitle())
+                .author(book.getAuthor())
+                .category(book.getCategory())
+                .categories(book.getCategories() == null ? java.util.List.of() : book.getCategories().stream()
+                        .map(c -> new CategoryResponse(c.getId(), c.getName()))
+                        .toList())
+                .publisher(book.getPublisher())
+                .description(book.getDescription())
+                .coverUrl(book.getCoverUrl())
+                .totalCount(book.getTotalCount())
+                .availableCount(book.getAvailableCount())
+                .createdAt(book.getCreatedAt())
+                .updatedAt(book.getUpdatedAt())
+                .build();
     }
 }
 

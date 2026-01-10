@@ -18,6 +18,8 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of("http://localhost:5173"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        // 允许前端读取响应头（可选，上传/下载场景更稳）
+        config.setExposedHeaders(List.of("Content-Type", "Content-Disposition"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

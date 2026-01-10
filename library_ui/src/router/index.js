@@ -19,6 +19,12 @@ const routes = [
     meta: { public: true },
   },
   {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: () => import('@/views/auth/SetPassword.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/',
     redirect: '/reader/books',
   },
@@ -28,6 +34,7 @@ const routes = [
     meta: { requiresAuth: true, roles: ['ADMIN'] },
     children: [
       { path: 'books', name: 'AdminBooks', component: () => import('@/views/admin/BookManage.vue') },
+      { path: 'categories', name: 'AdminCategories', component: () => import('@/views/admin/CategoryManage.vue') },
       { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManage.vue') },
       { path: 'borrows', name: 'AdminBorrows', component: () => import('@/views/admin/BorrowManage.vue') },
       { path: 'admin-token', name: 'AdminToken', component: () => import('@/views/admin/AdminToken.vue') },
@@ -61,6 +68,20 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return next('/login');
+  }
+
+  // 如果需要设置密码，且不是设置密码页面，则跳转到设置密码页面
+  if (authStore.needSetPassword && to.path !== '/set-password') {
+    return next('/set-password');
+  }
+
+  // 如果已经设置了密码，访问设置密码页面则跳转到首页（但允许从设置密码页面跳转出去）
+  if (!authStore.needSetPassword && to.path === '/set-password' && from.path !== '/set-password') {
+    if (authStore.role === 'ADMIN') {
+      return next('/admin/books');
+    } else {
+      return next('/reader/books');
+    }
   }
 
   if (to.meta.roles && authStore.role && !to.meta.roles.includes(authStore.role)) {

@@ -25,6 +25,10 @@ public class JwtTokenService {
     }
 
     public String generateToken(Long userId, String username, String role) {
+        return generateToken(userId, username, role, false);
+    }
+
+    public String generateToken(Long userId, String username, String role, boolean needSetPassword) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + expireMillis);
         return Jwts.builder()
@@ -33,6 +37,7 @@ public class JwtTokenService {
                 .expiration(exp)
                 .claim("username", username)
                 .claim("role", role)
+                .claim("needSetPassword", needSetPassword)
                 .signWith(secretKey)
                 .compact();
     }
