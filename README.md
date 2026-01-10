@@ -1,12 +1,15 @@
-# 图书馆管理系统（Spring Boot + Vue3 + Element Plus）
+# 图书馆管理系统（Spring Boot 4 + Vue 3 + Element Plus）
 
-本项目是一个 **Spring Boot + Vue3** 的图书馆管理系统示例实现，包含后端 REST API 与前端管理端/读者端页面。
+本项目是一个前后端分离的图书馆管理系统：
 
-- 管理员端：图书管理、用户管理、借阅审核/归还、管理员注册口令生成
-- 读者端：图书浏览、借阅申请、我的借阅、个人中心（资料/改密）
+- 后端：Spring Boot 4 + Spring Security + JWT + Spring Data JPA + MySQL
+- 前端：Vue 3 + Vite + Element Plus + Pinia + Vue Router
 
-> 后端：当前项目根目录（Spring Boot）
-> 前端：`library_ui`（Vue3 + Vite + Element Plus）
+包含：
+- 管理员端：图书/分类/用户/借阅管理、管理员注册口令生成
+- 读者端：图书浏览、批量借阅申请、我的借阅、个人中心
+- 认证：账号密码登录 + 手机号验证码登录（容联云通信/Mock）
+- 安全增强：手机号验证码自动注册用户必须先设置密码
 
 ---
 
@@ -17,7 +20,7 @@ library_management_system/               # 后端（Spring Boot）
 ├─ src/main/java/com/example/library_management_system
 ├─ src/main/resources
 │  ├─ application.properties
-│  └─ static/int.sql                     # 数据库初始化脚本（建库/建表/示例数据）
+│  └─ static/int.sql                     # 数据库初始化脚本
 ├─ pom.xml
 └─ README.md
 
@@ -28,71 +31,89 @@ library_ui/                              # 前端（Vue3 + Vite + Element Plus�
 
 ---
 
-## 2. 技术栈
-
-### 后端
-- Spring Boot 4
-- Spring Security + JWT
-- Spring Data JPA
-- MySQL 8
-
-### 前端
-- Vue 3 + Vite
-- Element Plus
-- Vue Router 4
-- Pinia
-- Axios
-- NProgress（路由切换进度条）
-
----
-
-## 3. 环境要求
+## 2. 环境要求
 
 - JDK 17+
 - Node.js 18+
 - MySQL 8+
+- Redis（用于短信验证码存储与限流）
 
 ---
 
-## 4. 数据库初始化（可重复执行 / 不删表）
+## 3. 数据库初始化
 
 初始化脚本：
 
 - `src/main/resources/static/int.sql`
 
-脚本特点：
-- ✅ `CREATE TABLE IF NOT EXISTS`：不删除表结构，可重复执行
-- ✅ 示例数据 `INSERT ... ON DUPLICATE KEY UPDATE`：重复执行不报错（用于 demo 环境）
-- ✅ `books.isbn` 设置唯一键 `uk_books_isbn`：确保图书按 ISBN 去重
-
-执行方式：
+执行示例：
 
 ```bash
 mysql -uroot -p < src/main/resources/static/int.sql
 ```
 
-> 如果你之前已经创建过 `books` 表且没有 `uk_books_isbn` 唯一键，由于脚本不会删表，需要你手动执行一次：
->
-> ```sql
-> ALTER TABLE books ADD UNIQUE KEY uk_books_isbn (isbn);
-> ```
-
 ---
 
-## 5. 后端启动
+## 4. 配置说明
 
-### 5.1 修改数据源配置
+### 4.1 MySQL 配置
 
 文件：`src/main/resources/application.properties`
 
-请按你的本地 MySQL 修改：
+需要按本机修改：
+
 - `spring.datasource.url`
 - `spring.datasource.username`
 - `spring.datasource.password`
 
-### 5.2 启动方式
+### 4.2 Redis 配置
 
-- IDEA：运行 `com.example.library_management_system.LibraryManagementSystemApplication`
+```properties
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.data.redis.password=
+spring.data.redis.database=0
+spring.data.redis.timeout=3000
+```
+
+### 4.3 JWT 配置
+
+```properties
+app.jwt.secret=please_change_this_secret_to_a_long_random_string_at_least_32_chars
+app.jwt.expire-seconds=86400
+```
+
+### 4.4 短信服务配置（容联云通信 / Mock）
+
+开发阶段建议使用 Mock（验证码输出到后端日志）：
+
+```properties
+app.sms.provider=mock
+```
+
+生产环境使用容联云通信：
+
+```properties
+app.sms.provider=yuntongxun
+app.sms.yuntongxun.server-ip=app.cloopen.com
+app.sms.yuntongxun.server-port=8883
+app.sms.yuntongxun.account-sid=你的AccountSID
+app.sms.yuntongxun.account-token=你的AccountToken
+app.sms.yuntongxun.app-id=你的AppID
+app.sms.yuntongxun.template-id=你的模板ID   # 注意：这里必须是模板ID，不是模板内容
+
+app.sms.code-length=6
+app.sms.code-expire-seconds=300
+app.sms.send-limit-seconds=60
+```
+
+---
+
+## 5. 启动方式
+
+### 5.1 启动后端
+
+IDEA：运行 `com.example.library_management_system.LibraryManagementSystemApplication`
 
 或 Maven Wrapper：
 
@@ -107,11 +128,10 @@ Windows：
 ```
 
 后端默认地址：
+
 - `http://localhost:8080`
 
----
-
-## 6. 前端启动
+### 5.2 启动前端
 
 ```bash
 cd library_ui
@@ -120,108 +140,88 @@ npm run dev
 ```
 
 前端默认地址：
+
 - `http://localhost:5173`
 
 ---
 
-## 7. 登录与会话策略（重要）
-
-前端登录信息使用 **sessionStorage** 保存：
-- ✅ 同一 Tab 刷新（Ctrl + R）：不会退出登录，仍停留在刷新时的页面（只刷新数据）
-- ✅ 新开 Tab / 新窗口：始终回到登录页（不共享旧 Tab 登录态）
-
----
-
-## 8. 默认账号与权限
-
-### 8.1 默认管理员
+## 6. 默认账号
 
 系统启动时会自动创建管理员账号（后端 `DataInitializer` 初始化）：
+
 - 用户名：`admin`
 - 密码：`admin123`
 
-### 8.2 示例读者账号（来自 int.sql）
+示例读者账号（来自 `int.sql`，密码均为 `123456`）：
 
-密码均为：`123456`
 - `reader1 / 123456`
 - `reader2 / 123456`
 - `reader3 / 123456`
 
-### 8.3 管理员注册机制
+---
 
-出于安全考虑，管理员不能随意注册。
+## 7. 登录与会话策略
 
-流程：
-1. 已登录管理员在管理端生成一次性管理员注册口令（24 小时有效，用一次即失效）
-2. 使用该口令注册管理员账号
+前端登录信息使用 `sessionStorage` 保存：
+
+- 同一 Tab 刷新不会退出登录
+- 新开 Tab / 新窗口不共享登录态
 
 ---
 
-## 9. 功能概览
+## 8. 手机号验证码登录（新增）
 
-### 9.1 管理员端
-- 图书管理：新增/编辑/删除/分页查询
-- 用户管理：新增/编辑/删除/分页查询
-- 借阅管理：审核通过/拒绝、登记归还、按状态与书名拼音首字母筛选
-- 管理员口令：生成管理员注册口令
+### 8.1 API
 
-### 9.2 读者端
-- 图书浏览：分页/关键词搜索/详情
-- 借阅管理：提交借阅申请、查看我的借阅
-- 个人中心：修改资料、修改密码
+- 发送验证码：`POST /api/auth/sms/send`
+- 验证码登录：`POST /api/auth/sms/login`
 
----
+### 8.2 Redis Key 约定
 
-## 10. API 速查（部分）
+- 验证码：`sms:code:{phone}`（默认 5 分钟过期）
+- 发送频率限制：`sms:limit:{phone}`（默认 60 秒）
 
-### 10.1 认证
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/register-admin`
-- `GET /api/me`
+### 8.3 安全规则：强制设置密码
 
-### 10.2 图书
-- `GET /api/books`（允许匿名访问）
-- `POST /api/books`（ADMIN）
-- `PUT /api/books/{id}`（ADMIN）
-- `DELETE /api/books/{id}`（ADMIN）
+手机号验证码登录若触发自动注册（或账号密码为空标识），登录后会返回：
 
-### 10.3 借阅
-- `POST /api/borrows`（登录）
-- `GET /api/borrows/my`（登录）
-- `GET /api/borrows`（ADMIN，支持 `status`、`titleInitial`）
-- `POST /api/borrows/{id}/approve`（ADMIN）
-- `POST /api/borrows/{id}/reject`（ADMIN）
-- `POST /api/borrows/{id}/return`（ADMIN）
+- `needSetPassword=true`
 
-### 10.4 管理员口令
-- `POST /api/admin-register-tokens`（ADMIN）
+前端会强制跳转到 `/set-password` 页面；设置成功后才允许进入读者端。
+
+设置密码接口：
+
+- `POST /api/me/set-password`
 
 ---
 
-## 11. 常见问题
+## 9. 借阅规则
 
-### 11.1 后端启动失败：8080 端口被占用
+- 每人同时最多借 3 本（PENDING + APPROVED 计入）
+- 默认借阅期限：30 天
 
-报错：
-```text
-Port 8080 was already in use
-```
+---
 
-解决：关闭占用 8080 的进程，或修改端口：
+## 10. 常见问题
+
+### 10.1 短信发送失败
+
+容联云通信发送失败最常见原因：
+
+- `template-id` 配错：应填写“模板ID”，不是模板内容。
+
+开发阶段建议先用：
 
 ```properties
-server.port=8081
+app.sms.provider=mock
 ```
 
-### 11.2 前端请求 Network Error
+### 10.2 Redis CLI 不存在
 
-常见原因：
-- 后端未启动
-- CORS 跨域
-
-本项目后端已配置允许 `http://localhost:5173` 访问。
+即便 `redis-cli` 不在 PATH，只要 `redis-server` 进程存在且 6379 端口可连，后端仍可正常连接 Redis。
 
 ---
 
-如需进一步扩展（罚金规则、分类字典、导出、统计报表、实体册/条码管理等），可继续在此基础上迭代。
+## 11. 许可证
+
+仅用于学习与演示。
