@@ -27,9 +27,40 @@ public class MeService {
     @Transactional
     public User updateProfile(String username, MeUpdateRequest req) {
         User user = getByUsername(username);
+
+        // 仅允许读者修改用户名；管理员不允许通过该接口修改用户名
+        if (req.getUsername() != null) {
+            String newUsername = req.getUsername().trim();
+
+            if (!newUsername.isEmpty()) {
+                if (user.getRole() != com.example.library_management_system.domain.enums.UserRole.READER) {
+                    throw new IllegalStateException("管理员不允许修改用户名");
+                }
+
+                // 基础格式校验：仅允许字母/数字/下划线，且 3-64 位
+                if (!newUsername.matches("^[a-zA-Z0-9_]{3,64}$")) {
+                    throw new IllegalStateException("用户名格式不正确（仅支持字母/数字/下划线，长度3-64）");
+                }
+
+                // 唯一性校验
+                userRepository.findByUsername(newUsername).ifPresent(u -> {
+                    if (!u.getId().equals(user.getId())) {
+                        throw new IllegalStateException("用户名已存在");
+                    }
+                });
+
+                user.setUsername(newUsername);
+            }
+        }
+
         user.setName(req.getName());
         user.setPhone(req.getPhone());
         user.setEmail(req.getEmail());
+
+        if (req.getAvatarUrl() != null) {
+            user.setAvatarUrl(req.getAvatarUrl());
+        }
+
         return userRepository.save(user);
     }
 

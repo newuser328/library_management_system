@@ -79,7 +79,8 @@ public class BookService {
 
     @Transactional(readOnly = true)
     public Book getById(Long id) {
-        return bookRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Book not found: " + id));
+        return bookRepository.findWithCategoriesById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found: " + id));
     }
 
     @Transactional(readOnly = true)

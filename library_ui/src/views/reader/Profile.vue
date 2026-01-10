@@ -22,8 +22,21 @@
           </template>
 
           <el-form ref="profileRef" :model="profile" :rules="profileRules" label-position="top">
-            <el-form-item label="用户名">
-              <el-input :model-value="authStore.user?.username" disabled />
+            <el-form-item label="头像">
+              <div class="avatar-row">
+                <el-avatar :size="64" :src="avatarSrc" />
+                <div class="avatar-actions">
+                  <input ref="avatarInputRef" type="file" accept="image/*" class="file-input" @change="onAvatarSelected" />
+                  <el-button :loading="avatarLoading" @click="triggerAvatarPick">上传头像</el-button>
+                  <div class="muted small">支持 png/jpg/jpeg/webp，最大 10MB</div>
+                </div>
+              </div>
+            </el-form-item>
+
+            <el-form-item label="用户名" prop="username">
+              <el-input v-model="profile.username" :disabled="authStore.user?.role !== 'READER'" placeholder="仅支持字母/数字/下划线，长度3-64" />
+              <div v-if="authStore.user?.role === 'READER'" class="muted small mt8">修改用户名后需要重新登录</div>
+              <div v-else class="muted small mt8">管理员不允许在此修改用户名</div>
             </el-form-item>
             <el-form-item label="姓名" prop="name">
               <el-input v-model="profile.name" placeholder="请输入姓名" />
@@ -77,10 +90,11 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/store/auth';
 import request from '@/utils/request';
+import { uploadFile } from '@/api/files';
 
 const authStore = useAuthStore();
 
@@ -91,9 +105,11 @@ const profileLoading = ref(false);
 const pwdLoading = ref(false);
 
 const profile = reactive({
+  username: '',
   name: '',
   phone: '',
   email: '',
+  avatarUrl: '',
 });
 
 const pwd = reactive({
@@ -102,6 +118,17 @@ const pwd = reactive({
 });
 
 const profileRules = {
+  username: [
+    {
+      validator: (_rule, value, callback) => {
+        if (authStore.user?.role !== 'READER') return callback();
+        if (!value || !String(value).trim()) return callback(new Error('请输入用户名'));
+        if (String(value).trim().length < 3) return callback(new Error('至少3位'));
+        return callback();
+      },
+      trigger: 'blur',
+    },
+  ],
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
 };
 
@@ -113,21 +140,101 @@ const pwdRules = {
   ],
 };
 
+const toPublicUrl = (path) => {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  const origin = request.defaults.baseURL.replace(/\/?api\/?$/, '');
+  if (path.startsWith('/')) return origin + path;
+  return origin + '/' + path;
+};
+
+const avatarSrc = computed(() => {
+  const raw = profile.avatarUrl || authStore.user?.avatarUrl;
+  return raw ? toPublicUrl(raw) : '/empty.png';
+});
+
+const avatarInputRef = ref();
+const avatarLoading = ref(false);
+
+const triggerAvatarPick = () => {
+  avatarInputRef.value?.click();
+};
+
+const onAvatarSelected = async (e) => {
+  const file = e?.target?.files?.[0];
+  if (!file) return;
+
+  avatarLoading.value = true;
+  try {
+    const uploaded = await uploadFile(file);
+    profile.avatarUrl = uploaded.url;
+
+    const payload = {
+      name: profile.name,
+      phone: profile.phone,
+      email: profile.email,
+      avatarUrl: profile.avatarUrl,
+    };
+    if (authStore.user?.role === 'READER') {
+      payload.username = profile.username;
+    }
+
+    const updated = await request({ url: '/me/profile', method: 'put', data: payload });
+    authStore.setUser(updated);
+    ElMessage.success('头像已更新');
+  } finally {
+    avatarLoading.value = false;
+    // 允许同一文件重复选择触发 change
+    if (e && e.target) e.target.value = '';
+  }
+};
+
 const loadMe = async () => {
   const me = await request({ url: '/me', method: 'get' });
   authStore.setUser(me);
+  profile.username = me.username || '';
   profile.name = me.name || '';
   profile.phone = me.phone || '';
   profile.email = me.email || '';
+  profile.avatarUrl = me.avatarUrl || '';
 };
 
 const saveProfile = async () => {
   await profileRef.value.validate();
   profileLoading.value = true;
   try {
-    const updated = await request({ url: '/me/profile', method: 'put', data: profile });
+    const oldUsername = authStore.user?.username;
+
+    // 管理员不允许修改 username：提交时直接不带 username
+    const payload = {
+      name: profile.name,
+      phone: profile.phone,
+      email: profile.email,
+      avatarUrl: profile.avatarUrl,
+    };
+    if (authStore.user?.role === 'READER') {
+      payload.username = profile.username;
+    }
+
+    const updated = await request({ url: '/me/profile', method: 'put', data: payload });
     authStore.setUser(updated);
+
+    if (authStore.user?.role === 'READER' && oldUsername && updated?.username && oldUsername !== updated.username) {
+      ElMessage.success('用户名已修改，请重新登录');
+      authStore.logout();
+      location.href = '/login';
+      return;
+    }
+
     ElMessage.success('保存成功');
+  } catch (e) {
+    // 兼容后端拒绝管理员改用户名时的提示
+    const msg = e?.message || e?.data?.message;
+    if (msg && msg.includes('管理员不允许修改用户名')) {
+      ElMessage.warning(msg);
+      return;
+    }
+    throw e;
   } finally {
     profileLoading.value = false;
   }
@@ -165,4 +272,9 @@ onMounted(() => {
 .card-title { font-weight: 900; }
 .actions { display:flex; gap: 10px; }
 .tip { margin-bottom: 12px; }
+.small { font-size: 12px; }
+.mt8 { margin-top: 8px; }
+.avatar-row { display:flex; align-items:center; gap: 12px; }
+.avatar-actions { display:flex; flex-direction:column; gap: 6px; }
+.file-input { display:none; }
 </style>

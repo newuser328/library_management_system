@@ -27,6 +27,11 @@
     <!-- 列表区 -->
     <el-card shadow="never" class="panel panel-a">
       <el-table :data="list" v-loading="loading" style="width:100%" row-class-name="table-row">
+        <el-table-column label="头像" width="90">
+          <template #default="{ row }">
+            <el-avatar :size="32" :src="toPublicUrl(row.avatarUrl) || '/empty.png'" />
+          </template>
+        </el-table-column>
         <el-table-column prop="username" label="用户名" width="160" />
         <el-table-column prop="name" label="姓名" width="140" />
         <el-table-column prop="role" label="角色" width="120">
@@ -79,6 +84,19 @@
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '新增用户' : '编辑用户'" width="640px" top="8vh">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="dialog-form">
         <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="头像">
+              <div class="avatar-row">
+                <el-avatar :size="64" :src="formAvatarSrc" />
+                <div class="avatar-actions">
+                  <input ref="avatarInputRef" type="file" accept="image/*" class="file-input" @change="onAvatarSelected" />
+                  <el-button :loading="avatarLoading" @click="triggerAvatarPick">上传头像</el-button>
+                  <div class="muted small">支持 png/jpg/jpeg/webp，最大 10MB</div>
+                </div>
+              </div>
+            </el-form-item>
+          </el-col>
+
           <el-col :span="12">
             <el-form-item label="用户名" prop="username"><el-input v-model="form.username" /></el-form-item>
           </el-col>
@@ -127,10 +145,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { listUsers, createUser, updateUser, deleteUser } from '@/api/users';
+import { uploadFile } from '@/api/files';
+import request from '@/utils/request';
 
 const keyword = ref('');
 const role = ref('');
@@ -142,7 +162,7 @@ const pagination = reactive({ current: 1, size: 10, total: 0 });
 const dialog = reactive({ visible: false, mode: 'create', loading: false, id: null });
 const formRef = ref();
 const form = reactive({
-  username: '', password: '', name: '', phone: '', email: '', role: 'READER', enabled: true,
+  username: '', password: '', name: '', phone: '', email: '', role: 'READER', enabled: true, avatarUrl: '',
 });
 
 const rules = {
@@ -173,7 +193,7 @@ const handleSearch = () => {
 const openCreate = () => {
   dialog.mode = 'create';
   dialog.id = null;
-  Object.assign(form, { username: '', password: '', name: '', phone: '', email: '', role: 'READER', enabled: true });
+  Object.assign(form, { username: '', password: '', name: '', phone: '', email: '', role: 'READER', enabled: true, avatarUrl: '' });
   dialog.visible = true;
   formRef.value?.clearValidate();
 };
@@ -187,11 +207,46 @@ const openEdit = (row) => {
     name: row.name,
     phone: row.phone,
     email: row.email,
+    avatarUrl: row.avatarUrl || '',
     role: row.role,
     enabled: row.enabled,
   });
   dialog.visible = true;
   formRef.value?.clearValidate();
+};
+
+const toPublicUrl = (path) => {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  const origin = request.defaults.baseURL.replace(/\/?api\/?$/, '');
+  if (path.startsWith('/')) return origin + path;
+  return origin + '/' + path;
+};
+
+const avatarInputRef = ref();
+const avatarLoading = ref(false);
+
+const formAvatarSrc = computed(() => {
+  return form.avatarUrl ? toPublicUrl(form.avatarUrl) : '/empty.png';
+});
+
+const triggerAvatarPick = () => {
+  avatarInputRef.value?.click();
+};
+
+const onAvatarSelected = async (e) => {
+  const file = e?.target?.files?.[0];
+  if (!file) return;
+
+  avatarLoading.value = true;
+  try {
+    const uploaded = await uploadFile(file);
+    form.avatarUrl = uploaded.url;
+    ElMessage.success('头像已上传，保存后生效');
+  } finally {
+    avatarLoading.value = false;
+    if (e && e.target) e.target.value = '';
+  }
 };
 
 const submit = async () => {
@@ -202,7 +257,7 @@ const submit = async () => {
       if (!form.password) {
         throw new Error('密码不能为空');
       }
-      await createUser(form);
+      await createUser({ ...form });
       ElMessage.success('新增成功');
     } else {
       await updateUser(dialog.id, { ...form });
@@ -232,4 +287,7 @@ onMounted(load);
 :deep(.table-row) { cursor: pointer; }
 .enabled-cell { display:flex; align-items:center; gap: 8px; }
 .help { font-size: 12px; margin-top: 6px; }
+.avatar-row { display:flex; align-items:center; gap: 12px; }
+.avatar-actions { display:flex; flex-direction:column; gap: 6px; }
+.file-input { display:none; }
 </style>

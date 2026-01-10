@@ -8,6 +8,10 @@ import lombok.Data;
 @Data
 public class MeUpdateRequest {
 
+    // 仅允许读者修改用户名；管理员不允许通过该接口修改用户名
+    @Size(max = 64)
+    private String username;
+
     @NotBlank
     @Size(max = 64)
     private String name;
@@ -18,5 +22,8 @@ public class MeUpdateRequest {
     @Email
     @Size(max = 128)
     private String email;
+
+    @Size(max = 512)
+    private String avatarUrl;
 }
 

@@ -29,6 +29,7 @@ public class UserController {
                 .name(req.getName())
                 .phone(req.getPhone())
                 .email(req.getEmail())
+                .avatarUrl(req.getAvatarUrl())
                 .role(req.getRole())
                 .enabled(req.getEnabled())
                 .build();
@@ -43,6 +44,7 @@ public class UserController {
                 .name(req.getName())
                 .phone(req.getPhone())
                 .email(req.getEmail())
+                .avatarUrl(req.getAvatarUrl())
                 .role(req.getRole())
                 .enabled(req.getEnabled())
                 .build();

@@ -21,6 +21,8 @@ public class UserCreateUpdateRequest {
 
     private String email;
 
+    private String avatarUrl;
+
     @NotNull
     private UserRole role;
 

@@ -34,6 +34,7 @@ public class UserService {
         user.setName(req.getName());
         user.setPhone(req.getPhone());
         user.setEmail(req.getEmail());
+        user.setAvatarUrl(req.getAvatarUrl());
         user.setRole(req.getRole() == null ? UserRole.READER : req.getRole());
         if (req.getEnabled() != null) {
             user.setEnabled(req.getEnabled());

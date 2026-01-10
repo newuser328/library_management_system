@@ -49,9 +49,9 @@ public class SecurityConfig {
                         // categories：仅管理员可写
                         .requestMatchers("/api/categories/**").hasRole("ADMIN")
 
-                        // files：图片读取不鉴权（img/预览请求无法携带 Authorization）；上传仅管理员
+                        // files：图片读取不鉴权（img/预览请求无法携带 Authorization）；上传允许任意已登录用户（头像/封面等）
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/files/images/**").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/files/upload").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/files/upload").authenticated()
 
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin-register-tokens/**").hasRole("ADMIN")
