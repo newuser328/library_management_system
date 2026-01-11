@@ -13,5 +13,8 @@ public class ChangePasswordRequest {
     @NotBlank
     @Size(min = 6, max = 64)
     private String newPassword;
+
+    @NotBlank
+    private String confirmPassword;
 }
 

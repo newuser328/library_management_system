@@ -1,144 +1,76 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never" class="hero panel panel-b">
-      <div class="hero-inner">
-        <div>
-          <div class="page-title">个人中心</div>
-          <div class="muted">维护你的个人资料与账号安全</div>
+    <div class="backdrop" />
+
+    <el-card shadow="never" class="shell panel">
+      <div class="header-card panel panel-b">
+        <div class="header-left">
+          <el-avatar :size="72" :src="avatarUrl" class="avatar" />
+          <div class="meta">
+            <div class="username">{{ displayUser.username || '-' }}</div>
+            <div class="sub muted">
+              <el-tag size="small" effect="light" round>
+                {{ displayUser.role === 'ADMIN' ? '管理员' : '读者' }}
+              </el-tag>
+            </div>
+          </div>
         </div>
-        <el-tag effect="light" round>{{ authStore.user?.username }} · {{ authStore.user?.role }}</el-tag>
+      </div>
+
+      <div class="list">
+        <router-link to="/reader/profile/edit" class="item" aria-label="个人资料">
+          <div class="icon i1">
+            <el-icon><User /></el-icon>
+          </div>
+          <div class="content">
+            <div class="t">个人资料</div>
+            <div class="d">修改姓名、头像、联系方式</div>
+          </div>
+          <el-icon class="arrow"><ArrowRight /></el-icon>
+        </router-link>
+
+        <router-link to="/reader/profile/security" class="item" aria-label="账号安全">
+          <div class="icon i2">
+            <el-icon><Lock /></el-icon>
+          </div>
+          <div class="content">
+            <div class="t">账号安全</div>
+            <div class="d">修改登录密码</div>
+          </div>
+          <el-icon class="arrow"><ArrowRight /></el-icon>
+        </router-link>
+      </div>
+
+      <div class="footer">
+        <el-popconfirm title="确定要退出登录吗？" confirm-button-text="确定" cancel-button-text="取消" @confirm="handleLogout">
+          <template #reference>
+            <el-button type="danger" plain class="logout">
+              <el-icon><SwitchButton /></el-icon>
+              <span>退出登录</span>
+            </el-button>
+          </template>
+        </el-popconfirm>
       </div>
     </el-card>
-
-    <el-row :gutter="16">
-      <!-- 个人资料 -->
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card shadow="never" class="panel panel-c">
-          <template #header>
-            <div class="card-header">
-              <div class="card-title">个人资料</div>
-              <el-tag type="success" effect="light" round>Profile</el-tag>
-            </div>
-          </template>
-
-          <el-form ref="profileRef" :model="profile" :rules="profileRules" label-position="top">
-            <el-form-item label="头像">
-              <div class="avatar-row">
-                <el-avatar :size="64" :src="avatarSrc" />
-                <div class="avatar-actions">
-                  <input ref="avatarInputRef" type="file" accept="image/*" class="file-input" @change="onAvatarSelected" />
-                  <el-button :loading="avatarLoading" @click="triggerAvatarPick">上传头像</el-button>
-                  <div class="muted small">支持 png/jpg/jpeg/webp，最大 10MB</div>
-                </div>
-              </div>
-            </el-form-item>
-
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="profile.username" :disabled="authStore.user?.role !== 'READER'" placeholder="仅支持字母/数字/下划线，长度3-64" />
-              <div v-if="authStore.user?.role === 'READER'" class="muted small mt8">修改用户名后需要重新登录</div>
-              <div v-else class="muted small mt8">管理员不允许在此修改用户名</div>
-            </el-form-item>
-            <el-form-item label="姓名" prop="name">
-              <el-input v-model="profile.name" placeholder="请输入姓名" />
-            </el-form-item>
-            <el-form-item label="手机号" prop="phone">
-              <el-input v-model="profile.phone" placeholder="可选" />
-            </el-form-item>
-            <el-form-item label="邮箱" prop="email">
-              <el-input v-model="profile.email" placeholder="可选" />
-            </el-form-item>
-
-            <div class="actions">
-              <el-button type="primary" :loading="profileLoading" @click="saveProfile">保存资料</el-button>
-              <el-button plain @click="loadMe">重置</el-button>
-            </div>
-          </el-form>
-        </el-card>
-      </el-col>
-
-      <!-- 修改密码 -->
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card shadow="never" class="panel panel-d">
-          <template #header>
-            <div class="card-header">
-              <div class="card-title">账号安全</div>
-              <el-tag type="warning" effect="light" round>Security</el-tag>
-            </div>
-          </template>
-
-          <el-alert type="info" show-icon :closable="false" class="tip">
-            为保障账号安全，修改密码后需要重新登录。
-          </el-alert>
-
-          <el-form ref="pwdRef" :model="pwd" :rules="pwdRules" label-position="top">
-            <el-form-item label="旧密码" prop="oldPassword">
-              <el-input v-model="pwd.oldPassword" type="password" show-password placeholder="请输入旧密码" />
-            </el-form-item>
-            <el-form-item label="新密码" prop="newPassword">
-              <el-input v-model="pwd.newPassword" type="password" show-password placeholder="至少 6 位" />
-            </el-form-item>
-
-            <div class="actions">
-              <el-button type="primary" :loading="pwdLoading" @click="changePassword">修改密码</el-button>
-              <el-button plain @click="clearPwd">清空</el-button>
-            </div>
-          </el-form>
-        </el-card>
-      </el-col>
-    </el-row>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { User, Lock, ArrowRight, SwitchButton } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/store/auth';
 import request from '@/utils/request';
-import { uploadFile } from '@/api/files';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
-const profileRef = ref();
-const pwdRef = ref();
-
-const profileLoading = ref(false);
-const pwdLoading = ref(false);
-
-const profile = reactive({
-  username: '',
-  name: '',
-  phone: '',
-  email: '',
-  avatarUrl: '',
+const displayUser = ref({
+  username: authStore.user?.username || '',
+  role: authStore.user?.role || '',
+  avatarUrl: authStore.user?.avatarUrl || '',
 });
-
-const pwd = reactive({
-  oldPassword: '',
-  newPassword: '',
-});
-
-const profileRules = {
-  username: [
-    {
-      validator: (_rule, value, callback) => {
-        if (authStore.user?.role !== 'READER') return callback();
-        if (!value || !String(value).trim()) return callback(new Error('请输入用户名'));
-        if (String(value).trim().length < 3) return callback(new Error('至少3位'));
-        return callback();
-      },
-      trigger: 'blur',
-    },
-  ],
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-};
-
-const pwdRules = {
-  oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '至少6位', trigger: 'blur' },
-  ],
-};
 
 const toPublicUrl = (path) => {
   if (!path) return '';
@@ -148,133 +80,146 @@ const toPublicUrl = (path) => {
   return origin + '/' + path;
 };
 
-const avatarSrc = computed(() => {
-  const raw = profile.avatarUrl || authStore.user?.avatarUrl;
+const avatarUrl = computed(() => {
+  const raw = displayUser.value.avatarUrl;
   return raw ? toPublicUrl(raw) : '/empty.png';
 });
 
-const avatarInputRef = ref();
-const avatarLoading = ref(false);
-
-const triggerAvatarPick = () => {
-  avatarInputRef.value?.click();
-};
-
-const onAvatarSelected = async (e) => {
-  const file = e?.target?.files?.[0];
-  if (!file) return;
-
-  avatarLoading.value = true;
+const loadUserInfo = async () => {
   try {
-    const uploaded = await uploadFile(file);
-    profile.avatarUrl = uploaded.url;
-
-    const payload = {
-      name: profile.name,
-      phone: profile.phone,
-      email: profile.email,
-      avatarUrl: profile.avatarUrl,
+    const me = await request({ url: '/me', method: 'get' });
+    displayUser.value = {
+      username: me.username,
+      role: me.role,
+      avatarUrl: me.avatarUrl,
     };
-    if (authStore.user?.role === 'READER') {
-      payload.username = profile.username;
-    }
-
-    const updated = await request({ url: '/me/profile', method: 'put', data: payload });
-    authStore.setUser(updated);
-    ElMessage.success('头像已更新');
-  } finally {
-    avatarLoading.value = false;
-    // 允许同一文件重复选择触发 change
-    if (e && e.target) e.target.value = '';
+    authStore.setUser(me);
+  } catch (error) {
+    console.error('加载用户信息失败:', error);
+    ElMessage.error('加载用户信息失败');
   }
 };
 
-const loadMe = async () => {
-  const me = await request({ url: '/me', method: 'get' });
-  authStore.setUser(me);
-  profile.username = me.username || '';
-  profile.name = me.name || '';
-  profile.phone = me.phone || '';
-  profile.email = me.email || '';
-  profile.avatarUrl = me.avatarUrl || '';
-};
-
-const saveProfile = async () => {
-  await profileRef.value.validate();
-  profileLoading.value = true;
-  try {
-    const oldUsername = authStore.user?.username;
-
-    // 管理员不允许修改 username：提交时直接不带 username
-    const payload = {
-      name: profile.name,
-      phone: profile.phone,
-      email: profile.email,
-      avatarUrl: profile.avatarUrl,
-    };
-    if (authStore.user?.role === 'READER') {
-      payload.username = profile.username;
-    }
-
-    const updated = await request({ url: '/me/profile', method: 'put', data: payload });
-    authStore.setUser(updated);
-
-    if (authStore.user?.role === 'READER' && oldUsername && updated?.username && oldUsername !== updated.username) {
-      ElMessage.success('用户名已修改，请重新登录');
-      authStore.logout();
-      location.href = '/login';
-      return;
-    }
-
-    ElMessage.success('保存成功');
-  } catch (e) {
-    // 兼容后端拒绝管理员改用户名时的提示
-    const msg = e?.message || e?.data?.message;
-    if (msg && msg.includes('管理员不允许修改用户名')) {
-      ElMessage.warning(msg);
-      return;
-    }
-    throw e;
-  } finally {
-    profileLoading.value = false;
-  }
-};
-
-const clearPwd = () => {
-  pwd.oldPassword = '';
-  pwd.newPassword = '';
-  pwdRef.value?.clearValidate();
-};
-
-const changePassword = async () => {
-  await pwdRef.value.validate();
-  pwdLoading.value = true;
-  try {
-    await request({ url: '/me/password', method: 'put', data: pwd });
-    ElMessage.success('密码修改成功，请重新登录');
-    authStore.logout();
-    location.href = '/login';
-  } finally {
-    pwdLoading.value = false;
-  }
+const handleLogout = () => {
+  authStore.logout();
+  router.push('/login');
+  ElMessage.success('已退出登录');
 };
 
 onMounted(() => {
-  loadMe();
+  loadUserInfo();
 });
 </script>
 
 <style scoped>
-.page-container { display:flex; flex-direction:column; gap: 16px; }
-.hero { background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(6,182,212,0.08)); }
-.hero-inner { display:flex; justify-content:space-between; align-items:center; gap: 12px; flex-wrap: wrap; }
-.card-header { display:flex; align-items:center; justify-content:space-between; }
-.card-title { font-weight: 900; }
-.actions { display:flex; gap: 10px; }
-.tip { margin-bottom: 12px; }
-.small { font-size: 12px; }
-.mt8 { margin-top: 8px; }
-.avatar-row { display:flex; align-items:center; gap: 12px; }
-.avatar-actions { display:flex; flex-direction:column; gap: 6px; }
-.file-input { display:none; }
+.page-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 28px 24px;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background:
+    radial-gradient(900px circle at 10% 12%, rgba(79,70,229,0.20) 0%, rgba(255,255,255,0) 55%),
+    radial-gradient(900px circle at 92% 18%, rgba(6,182,212,0.16) 0%, rgba(255,255,255,0) 58%),
+    radial-gradient(900px circle at 14% 86%, rgba(236,72,153,0.10) 0%, rgba(255,255,255,0) 60%),
+    radial-gradient(900px circle at 86% 88%, rgba(249,115,22,0.10) 0%, rgba(255,255,255,0) 60%);
+  pointer-events: none;
+}
+
+.shell {
+  position: relative;
+  width: min(860px, 100%);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.68);
+  backdrop-filter: blur(12px);
+  padding: 16px;
+}
+
+.header-card {
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(229,231,235,0.9);
+}
+
+.header-left { display:flex; align-items:center; gap: 16px; }
+
+.avatar {
+  border: 2px solid rgba(79,70,229,0.35);
+  background: rgba(255,255,255,0.9);
+}
+
+.meta { display:flex; flex-direction:column; gap: 8px; min-width: 0; }
+.username {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list { margin-top: 16px; display:flex; flex-direction:column; gap: 12px; }
+
+.item {
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(229,231,235,0.9);
+  background: rgba(255,255,255,0.82);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+.item:hover {
+  background: rgba(79,70,229,0.06);
+  box-shadow: 0 10px 26px rgba(15,23,42,0.08);
+  transform: translateY(-1px);
+}
+
+.icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 18px;
+}
+.i1 { background: rgba(79,70,229,0.12); color: #4f46e5; }
+.i2 { background: rgba(249,115,22,0.12); color: #f97316; }
+
+.content { flex: 1; min-width: 0; display:flex; flex-direction:column; gap: 4px; }
+.t { font-weight: 900; }
+.d { font-size: 12px; color: rgba(15,23,42,0.60); overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.arrow { color: rgba(15,23,42,0.35); }
+
+.footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(229,231,235,0.9);
+}
+
+.logout {
+  width: 100%;
+  height: 46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  border-radius: 14px;
+}
+
+@media (max-width: 768px) {
+  .page-container { padding: 16px 12px; }
+  .shell { width: min(680px, 100%); padding: 14px; }
+}
 </style>

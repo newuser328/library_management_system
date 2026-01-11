@@ -48,6 +48,8 @@ const routes = [
       { path: 'books', name: 'ReaderBooks', component: () => import('@/views/reader/BookList.vue') },
       { path: 'my-borrows', name: 'MyBorrows', component: () => import('@/views/reader/MyBorrows.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/views/reader/Profile.vue') },
+      { path: 'profile/edit', name: 'ProfileEdit', component: () => import('@/views/reader/ProfileEdit.vue') },
+      { path: 'profile/security', name: 'ProfileSecurity', component: () => import('@/views/reader/ProfileSecurity.vue') },
     ],
   },
 ];

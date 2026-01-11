@@ -75,6 +75,10 @@ public class MeService {
             throw new IllegalStateException("newPassword cannot be same as old password");
         }
 
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            throw new IllegalStateException("passwords do not match");
+        }
+
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
     }
