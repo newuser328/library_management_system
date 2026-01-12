@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout">
-    <el-aside width="240px" class="aside">
+    <el-aside width="280px" class="aside">
       <div class="brand">
         <div class="brand-logo">L</div>
         <div class="brand-text">
@@ -14,6 +14,7 @@
         <el-menu-item index="/admin/categories">分类管理</el-menu-item>
         <el-menu-item index="/admin/users">用户管理</el-menu-item>
         <el-menu-item index="/admin/borrows">借阅管理</el-menu-item>
+        <el-menu-item index="/admin/notices">公告管理</el-menu-item>
         <el-menu-item index="/admin/admin-token">管理员口令</el-menu-item>
       </el-menu>
 
@@ -40,7 +41,9 @@
         </div>
       </el-header>
       <el-main class="main">
-        <router-view />
+        <div class="content-wrap">
+          <router-view />
+        </div>
       </el-main>
     </el-container>
   </el-container>
@@ -63,6 +66,7 @@ const title = computed(() => {
   if (route.path.includes('/admin/users')) return '用户管理';
   if (route.path.includes('/admin/borrows')) return '借阅管理';
   if (route.path.includes('/admin/admin-token')) return '管理员口令';
+  if (route.path.includes('/admin/notices')) return '公告管理';
   return '管理端';
 });
 
@@ -81,11 +85,14 @@ const goReader = () => {
   min-height: 100vh;
   background: transparent;
 }
+
 .aside {
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82));
+  position: relative;
+  background: linear-gradient(180deg, rgba(79,70,229,0.10), rgba(6,182,212,0.06));
   border-right: 1px solid rgba(229,231,235,0.9);
   backdrop-filter: blur(10px);
 }
+
 .brand {
   height: 64px;
   display: flex;
@@ -93,10 +100,11 @@ const goReader = () => {
   gap: 12px;
   padding: 0 16px;
 }
+
 .brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,10 +113,51 @@ const goReader = () => {
   background: linear-gradient(135deg, #4f46e5, #06b6d4);
   box-shadow: 0 10px 30px rgba(79,70,229,0.25);
 }
-.brand-title { font-weight: 900; line-height: 1.1; }
-.brand-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
-.menu { border-right: none; padding: 8px; background: transparent; }
+.brand-title {
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.menu {
+  border-right: none;
+  padding: 12px;
+  background: transparent;
+}
+
+.menu :deep(.el-menu) {
+  background: transparent;
+  border-right: none;
+}
+
+.menu :deep(.el-menu-item) {
+  height: 52px;
+  font-size: 15px;
+  border-radius: 12px;
+  margin: 6px 0;
+  transition: background-color 160ms ease, transform 120ms ease, box-shadow 160ms ease;
+}
+
+.menu :deep(.el-menu-item:hover) {
+  background: rgba(79,70,229,0.10);
+  transform: translateX(1px);
+}
+
+.menu :deep(.el-menu-item.is-active) {
+  background: rgba(79,70,229,0.16);
+  box-shadow: 0 8px 20px rgba(79,70,229,0.12);
+  font-weight: 800;
+}
+
+.menu :deep(.el-menu-item:active) {
+  transform: translateX(1px) translateY(1px);
+}
 
 .header {
   background: rgba(255,255,255,0.75);
@@ -118,27 +167,49 @@ const goReader = () => {
   justify-content: space-between;
   backdrop-filter: blur(10px);
 }
-.header-left { display:flex; flex-direction:column; gap: 2px; }
-.header-right { display:flex; gap: 10px; align-items:center; }
 
-.main { padding: 16px; }
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.main {
+  padding: 16px;
+}
+
+/* 管理端主内容背景容器：统一给各模块页面铺底色 */
+.content-wrap {
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(6,182,212,0.08));
+  border: 1px solid rgba(229,231,235,0.9);
+}
 
 .aside-footer {
   position: absolute;
   bottom: 0;
-  width: 240px;
+  width: 280px;
   padding: 12px;
   box-sizing: border-box;
 }
+
 .user-chip {
-  display:flex;
-  align-items:center;
+  display: flex;
+  align-items: center;
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(229,231,235,0.9);
   background: rgba(255,255,255,0.8);
 }
+
 .dot {
   width: 10px;
   height: 10px;
@@ -146,6 +217,13 @@ const goReader = () => {
   background: #22c55e;
   box-shadow: 0 0 0 6px rgba(34,197,94,0.15);
 }
-.u1 { font-weight: 700; }
-.u2 { font-size: 12px; color: #6b7280; }
+
+.u1 {
+  font-weight: 700;
+}
+
+.u2 {
+  font-size: 12px;
+  color: #6b7280;
+}
 </style>

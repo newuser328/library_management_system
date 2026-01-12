@@ -26,7 +26,7 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/reader/books',
+    redirect: '/reader/home',
   },
   {
     path: '/admin',
@@ -38,6 +38,7 @@ const routes = [
       { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManage.vue') },
       { path: 'borrows', name: 'AdminBorrows', component: () => import('@/views/admin/BorrowManage.vue') },
       { path: 'admin-token', name: 'AdminToken', component: () => import('@/views/admin/AdminToken.vue') },
+      { path: 'notices', name: 'AdminNotices', component: () => import('@/views/admin/NoticeManage.vue') },
     ],
   },
   {
@@ -45,6 +46,8 @@ const routes = [
     component: () => import('@/layouts/ReaderLayout.vue'),
     meta: { requiresAuth: true, roles: ['READER', 'ADMIN'] },
     children: [
+      { path: 'home', name: 'ReaderHome', component: () => import('@/views/reader/Home.vue'), meta: { public: true } },
+      { path: 'notices/:id', name: 'ReaderNoticeDetail', component: () => import('@/views/reader/NoticeDetail.vue'), meta: { public: true } },
       { path: 'books', name: 'ReaderBooks', component: () => import('@/views/reader/BookList.vue') },
       { path: 'my-borrows', name: 'MyBorrows', component: () => import('@/views/reader/MyBorrows.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/views/reader/Profile.vue') },
@@ -65,6 +68,11 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
   if (to.meta.public) {
+    return next();
+  }
+
+  // 兼容：如果某个子路由标记为 public，也应当允许匿名访问
+  if (to.matched.some((r) => r.meta && r.meta.public)) {
     return next();
   }
 

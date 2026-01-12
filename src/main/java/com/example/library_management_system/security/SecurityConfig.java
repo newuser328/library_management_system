@@ -53,6 +53,10 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/files/images/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/files/upload").authenticated()
 
+                        // notices：读者端已发布公告允许匿名访问；管理端需要 ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/notices/published").permitAll()
+                        .requestMatchers("/api/notices/admin/**", "/api/notices/admin").hasRole("ADMIN")
+
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin-register-tokens/**").hasRole("ADMIN")
                         .requestMatchers("/api/borrows/**").authenticated()
