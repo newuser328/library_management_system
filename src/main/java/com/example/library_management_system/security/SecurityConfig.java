@@ -36,6 +36,9 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // 前端静态资源 & SPA 路由放行（合一部署时访问 / 不应要求登录）
+                        .requestMatchers("/", "/index.html", "/assets/**", "/*.css", "/*.js", "/*.ico", "/*.png", "/*.svg").permitAll()
+
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
