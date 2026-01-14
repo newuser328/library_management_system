@@ -62,6 +62,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin-register-tokens/**").hasRole("ADMIN")
+                        .requestMatchers("/api/statistics").hasRole("ADMIN")
                         .requestMatchers("/api/borrows/**").authenticated()
                         .requestMatchers("/api/me/**").authenticated()
                         .anyRequest().denyAll()

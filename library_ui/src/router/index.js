@@ -33,6 +33,7 @@ const routes = [
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true, roles: ['ADMIN'] },
     children: [
+      { path: 'statistics', name: 'AdminStatistics', component: () => import('@/views/admin/Statistics.vue') },
       { path: 'books', name: 'AdminBooks', component: () => import('@/views/admin/BookManage.vue') },
       { path: 'categories', name: 'AdminCategories', component: () => import('@/views/admin/CategoryManage.vue') },
       { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManage.vue') },

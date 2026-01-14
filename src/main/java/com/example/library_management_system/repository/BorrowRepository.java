@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +37,8 @@ public interface BorrowRepository extends JpaRepository<Borrow, Long> {
     boolean existsByUserAndBookAndStatusIn(User user, Book book, List<BorrowStatus> statuses);
 
     long countByUserAndStatusIn(User user, List<BorrowStatus> statuses);
+
+    long countByRequestTimeBetween(LocalDateTime start, LocalDateTime end);
 
     @EntityGraph(attributePaths = {"user", "book"})
     Page<Borrow> findByBook_TitlePinyinStartingWithIgnoreCase(String titleInitial, Pageable pageable);

@@ -10,6 +10,7 @@
       </div>
 
       <el-menu :default-active="active" router class="menu">
+        <el-menu-item index="/admin/statistics">统计分析</el-menu-item>
         <el-menu-item index="/admin/books">图书管理</el-menu-item>
         <el-menu-item index="/admin/categories">分类管理</el-menu-item>
         <el-menu-item index="/admin/users">用户管理</el-menu-item>
@@ -61,6 +62,7 @@ const authStore = useAuthStore();
 const active = computed(() => route.path);
 
 const title = computed(() => {
+  if (route.path.includes('/admin/statistics')) return '统计分析';
   if (route.path.includes('/admin/books')) return '图书管理';
   if (route.path.includes('/admin/categories')) return '分类管理';
   if (route.path.includes('/admin/users')) return '用户管理';
